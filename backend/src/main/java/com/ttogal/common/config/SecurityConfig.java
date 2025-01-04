@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ttogal.api.service.user.CustomUserDetailsService;
 import com.ttogal.common.filter.JwtFilter;
 import com.ttogal.common.filter.LoginFilter;
-import com.ttogal.common.util.JwtUtil;
+import com.ttogal.common.handler.login.LoginFailureHandler;
+import com.ttogal.common.handler.login.LoginSuccessHandler;
+import com.ttogal.common.util.JwtService;
+import com.ttogal.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +29,8 @@ public class SecurityConfig {
 
   private final CustomUserDetailsService customUserDetailsService;
   private final ObjectMapper objectMapper;
-  private final JwtUtil jwtUtil;
+  private final JwtService jwtService;
+  private final UserRepository userRepository;
 
   @Bean
   public BCryptPasswordEncoder passwordEncoder() {
@@ -58,7 +62,7 @@ public class SecurityConfig {
                             .requestMatchers("/admin").hasRole("ADMIN")
                             .anyRequest().permitAll()
             )
-            .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new JwtFilter(jwtService,userRepository), UsernamePasswordAuthenticationFilter.class)
             .addFilterAt(loginAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
@@ -76,8 +80,20 @@ public class SecurityConfig {
   @Bean
   LoginFilter loginAuthenticationFilter() {
     LoginFilter loginFilter
-            = new LoginFilter(objectMapper,jwtUtil);
+            = new LoginFilter(objectMapper, jwtService);
     loginFilter.setAuthenticationManager(authenticationManager());
+    loginFilter.setAuthenticationSuccessHandler(loginSuccessHandler());
+    loginFilter.setAuthenticationFailureHandler(new LoginFailureHandler());
     return loginFilter;
+  }
+
+  @Bean
+  LoginSuccessHandler loginSuccessHandler() {
+    return new LoginSuccessHandler(jwtService);
+  }
+
+  @Bean
+  LoginFailureHandler loginFailureHandler() {
+    return new LoginFailureHandler();
   }
 }

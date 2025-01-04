@@ -8,6 +8,8 @@ import com.ttogal.api.controller.user.dto.response.UserRegisterResponseDto;
 import com.ttogal.api.controller.user.dto.response.UserResponseDto;
 import com.ttogal.api.service.user.UserService;
 import com.ttogal.common.handler.user.UserResponseHandler;
+import com.ttogal.common.util.JwtService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,8 +20,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.util.List;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
@@ -28,6 +28,7 @@ public class UserController {
 
   private final UserService userService;
   private final UserResponseHandler userResponseHandler;
+  private final JwtService jwtService;
 
   @PostMapping("/login")
   @Operation(
@@ -93,6 +94,12 @@ public class UserController {
   @GetMapping("/{userId}")
   public ResponseEntity<Void> getUser(@PathVariable("userId") Long userId){
     System.out.println("userId: " + userId);
+    return new ResponseEntity<>(HttpStatus.OK);
+  }
+
+  @PostMapping("/reissue")
+  public ResponseEntity<Void> reissueAccessToken(@CookieValue(value = "Authorization-refresh",defaultValue = "") String refreshToken, HttpServletResponse response){
+    jwtService.reIssueAccessToken(response, refreshToken);
     return new ResponseEntity<>(HttpStatus.OK);
   }
 }
